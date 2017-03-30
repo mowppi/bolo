@@ -6,16 +6,64 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var environment = process.env.NODE_ENV || 'development';
 
+var allClients = [];
+
+function findClientByName(name) {
+	var idx;
+	allClients.some((client, i) => {
+		if (client.name === name) {
+			idx = i;
+			return true
+		}
+	});
+	return allClients[idx];
+}
+
 io.on('connection', (socket) => { 
 	console.log('new socket connection'); 
+
+	let randomUser = 'User' + Math.floor((Math.random() * 99999) + 1);
+	allClients.push({name: randomUser, socket: socket});
+
+	let nameArr = allClients.map(function(sObj){
+		return sObj.name;
+	});
+
+	socket.emit('this socket connected', randomUser, nameArr);
+	socket.broadcast.emit('user connected', randomUser, nameArr);
+
 	socket.on('disconnect', () => {
 		console.log('user disconnected')
+
+		var idx;
+		allClients.some((client, i) => {
+			if (client.socket === socket) {
+				idx = i;
+				return true
+			}
+		});
+		disconnectedUser = allClients[idx].name;
+		allClients.splice(idx, 1);
+
+		let nameArr = allClients.map(function(sObj){
+			return sObj.name;
+		});
+
+		socket.broadcast.emit('user disconnected', disconnectedUser, nameArr);
 	});
 	socket.on('chat message', (msg) => {
 		socket.broadcast.emit('chat message', msg);
 	});
 	socket.on('user joined', (user) => {
 		socket.broadcast.emit('user joined', user);
+	});
+	socket.on('name changed', (oldName, newName) => {
+		let client = findClientByName(oldName);
+		client.name = newName;
+		let nameArr = allClients.map(function(sObj){
+			return sObj.name;
+		});
+		io.emit('name changed', oldName, newName, nameArr);
 	});
 });
 

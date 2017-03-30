@@ -44,9 +44,77 @@ export default class Chat extends Component {
 			$('.message-area').prepend(html);
 		});
 
-		let randomUser = 'User' + Math.floor((Math.random() * 99999) + 1);
+		this.socket.on('this socket connected', (user, allUsers) => {
+			console.log(allUsers)
+			let connectedUsers = this.state.connectedUsers;
+			connectedUsers.push(user);
+			this.setState({
+				author: user,
+				connectedUsers: connectedUsers
+			});
+		});
+
+		this.socket.on('user connected', (user, allUsers) => {
+			let connectedUsers = this.state.connectedUsers;
+			connectedUsers.push(user);
+			this.setState({connectedUsers: connectedUsers});
+			console.log(this.state)
+
+			let html = [
+				'<div class="message info">',
+				'<span class="message-author">',
+				'Console',
+				'</span>',
+				':&nbsp;',
+				'<span class="message-content">',
+				user,
+				' has joined the chat.',
+				'</span>',
+				'</div>'
+			].join('');
+			$('.message-area').prepend(html);
+		});
+
+		this.socket.on('user disconnected', (user, allUsers) => {
+			this.setState({connectedUsers: allUsers});
+
+			let html = [
+				'<div class="message info">',
+				'<span class="message-author">',
+				'Console',
+				'</span>',
+				':&nbsp;',
+				'<span class="message-content">',
+				user,
+				' has disconnected from the chat.',
+				'</span>',
+				'</div>'
+			].join('');
+			$('.message-area').prepend(html);
+		});
+
+		this.socket.on('name changed', (oldName, newName, allUsers) => {
+			this.setState({connectedUsers: allUsers});
+
+			let html = [
+				'<div class="message info">',
+				'<span class="message-author">',
+				'Console',
+				'</span>',
+				':&nbsp;',
+				'<span class="message-content">',
+				oldName,
+				' has changed name to: ',
+				newName,
+				'.</span>',
+				'</div>'
+			].join('');
+			$('.message-area').prepend(html);
+		});
+
+		// let randomUser = 'User' + Math.floor((Math.random() * 99999) + 1);
 		// set random name
-		let connectedUsers = this.state.connectedUsers;
+		/*let connectedUsers = this.state.connectedUsers;
 		connectedUsers.push(randomUser);
 		this.setState({
 			author: randomUser,
@@ -55,7 +123,7 @@ export default class Chat extends Component {
 		() => {
 			this.socket.emit('user joined', this.state.author);
 			console.log(this.state)
-		});
+		});*/
 
 	}
 
@@ -78,7 +146,13 @@ export default class Chat extends Component {
 		let action = arguments[0];
 		switch(action) {
 			case 'name':
+				let oldName = this.state.author;
 				this.setState({author: arguments[1]});
+				console.log(oldName, arguments[1])
+				this.socket.emit('name changed', oldName, arguments[1]);
+				break;
+			case 'help':
+				console.log('help')
 				break;
 		}
 	}
